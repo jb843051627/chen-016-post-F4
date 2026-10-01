@@ -37,6 +37,16 @@ public class TPostDueTask implements Serializable {
     @ApiModelProperty(value = "告知事项号")
     private String itemNo;
 
+    /** 事由类别 0证照有效期到期 1网点备案满一年核验 2责令改正期限将至 */
+    @TableField("biz_type")
+    @ApiModelProperty(value = "事由类别 0证照有效期到期 1网点备案满一年核验 2责令改正期限将至")
+    private Integer bizType;
+
+    /** 被告知企业底档字号 */
+    @TableField("site_no")
+    @ApiModelProperty(value = "被告知企业底档字号")
+    private String siteNo;
+
     /** 该动手那一日的止点时刻 */
     @TableField("due_at")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
@@ -57,6 +67,17 @@ public class TPostDueTask implements Serializable {
     @TableField("status")
     @ApiModelProperty(value = "条目情形 0未开口 1已送达 2送不下去")
     private Integer status;
+
+    /** 送达那一刻的时刻（钉下后不许覆盖） */
+    @TableField("delivered_at")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @ApiModelProperty(value = "送达那一刻的时刻（钉下后不许覆盖）")
+    private Date deliveredAt;
+
+    /** 送不下去/撤回情由（跟着这行走） */
+    @TableField("fail_reason")
+    @ApiModelProperty(value = "送不下去/撤回情由（跟着这行走）")
+    private String failReason;
 
     /** 删除标记 0正常 1删除 */
     @TableField("del_flag")
@@ -106,6 +127,22 @@ public class TPostDueTask implements Serializable {
         this.itemNo = itemNo;
     }
 
+    public Integer getBizType() {
+        return bizType;
+    }
+
+    public void setBizType(Integer bizType) {
+        this.bizType = bizType;
+    }
+
+    public String getSiteNo() {
+        return siteNo;
+    }
+
+    public void setSiteNo(String siteNo) {
+        this.siteNo = siteNo;
+    }
+
     public Date getDueAt() {
         return dueAt;
     }
@@ -136,6 +173,22 @@ public class TPostDueTask implements Serializable {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Date getDeliveredAt() {
+        return deliveredAt;
+    }
+
+    public void setDeliveredAt(Date deliveredAt) {
+        this.deliveredAt = deliveredAt;
+    }
+
+    public String getFailReason() {
+        return failReason;
+    }
+
+    public void setFailReason(String failReason) {
+        this.failReason = failReason;
     }
 
     public Integer getDelFlag() {

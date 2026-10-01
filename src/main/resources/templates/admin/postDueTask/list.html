@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('到期告知事项')"/>
+</head>
+<body class="pear-container">
+<div class="layui-card">
+    <div class="layui-card-header">本轮局面（屏上三条数与库里三条数同出一回计算）</div>
+    <div class="layui-card-body">
+        <div class="layui-row layui-col-space15">
+            <div class="layui-col-md2">
+                <div class="layui-panel" style="padding: 12px;text-align:center;">
+                    <div style="font-size:28px;" id="stat-wait">-</div>
+                    <div>未开口</div>
+                </div>
+            </div>
+            <div class="layui-col-md2">
+                <div class="layui-panel" style="padding: 12px;text-align:center;">
+                    <div style="font-size:28px;color:#16b777;" id="stat-done">-</div>
+                    <div>已送达</div>
+                </div>
+            </div>
+            <div class="layui-col-md2">
+                <div class="layui-panel" style="padding: 12px;text-align:center;">
+                    <div style="font-size:28px;color:#ff5722;" id="stat-fail">-</div>
+                    <div>送不下去</div>
+                </div>
+            </div>
+            <div class="layui-col-md6">
+                <div class="layui-panel" style="padding: 12px;">
+                    <div>本轮结局：<span id="round-outcome" style="font-weight:bold;">-</span>
+                        <span id="round-runat" style="color:#999;margin-left:10px;"></span></div>
+                    <div id="round-message" style="margin-top:6px;color:#666;">-</div>
+                    <div style="margin-top:6px;color:#999;" id="window-state"></div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:10px;">
+            <button shiro:hasPermission="post:postDueTask:run" id="btn-run" class="pear-btn pear-btn-primary pear-btn-md">
+                <i class="layui-icon layui-icon-release"></i> 跑一轮
+            </button>
+            <button id="btn-refresh" class="pear-btn pear-btn-md">
+                <i class="layui-icon layui-icon-refresh"></i> 刷新局面
+            </button>
+        </div>
+    </div>
+</div>
+<div class="layui-card">
+    <div class="layui-card-body">
+        <form class="layui-form" action="">
+            <div class="layui-form-item">
+                <label class="layui-form-label">事项号</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="itemNo" placeholder="" class="layui-input">
+                </div>
+                <label class="layui-form-label">情形</label>
+                <div class="layui-input-inline">
+                    <select name="status">
+                        <option value="">全部</option>
+                        <option value="0">未开口</option>
+                        <option value="1">已送达</option>
+                        <option value="2">送不下去</option>
+                    </select>
+                </div>
+                <button class="pear-btn pear-btn-md pear-btn-primary" lay-submit lay-filter="postDueTask-query">
+                    <i class="layui-icon layui-icon-search"></i>
+                    查询
+                </button>
+                <button type="reset" class="pear-btn pear-btn-md">
+                    <i class="layui-icon layui-icon-refresh"></i>
+                    重置
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="layui-card">
+    <div class="layui-card-header">告知事项底册（只读翻单子，添不上也撤不掉；能改的只有提前几日）</div>
+    <div class="layui-card-body">
+        <table id="postDueTask-table" lay-filter="postDueTask-table"></table>
+    </div>
+</div>
+<div class="layui-card">
+    <div class="layui-card-header">轮次册（每轮结局与三个数，撤回这一笔在这里查）</div>
+    <div class="layui-card-body">
+        <table id="postDueRound-table" lay-filter="postDueRound-table"></table>
+    </div>
+</div>
+</body>
+
+<script type="text/html" id="postDueTask-bar">
+    <button shiro:hasPermission="post:postDueTask:edit" class="pear-btn pear-btn-primary pear-btn-sm" lay-event="editAmount" title="改提前几日">
+        <i class="layui-icon layui-icon-edit"></i>
+    </button>
+</script>
+
+<script type="text/html" id="postDueTask-status">
+    {{# if (d.status === 0) { }}
+    <span class="layui-badge layui-bg-blue">未开口</span>
+    {{# } else if (d.status === 1) { }}
+    <span class="layui-badge layui-bg-green">已送达</span>
+    {{# } else if (d.status === 2) { }}
+    <span class="layui-badge layui-bg-orange">送不下去</span>
+    {{# } }}
+</script>
+
+<script type="text/html" id="postDueTask-bizType">
+    {{# if (d.bizType === 0) { }}
+    <span class="layui-badge layui-bg-blue">证照到期</span>
+    {{# } else if (d.bizType === 1) { }}
+    <span class="layui-badge layui-bg-cyan">网点核验</span>
+    {{# } else if (d.bizType === 2) { }}
+    <span class="layui-badge layui-bg-purple">责令改正</span>
+    {{# } }}
+</script>
+
+<script type="text/html" id="postDueRound-outcome">
+    {{# if (d.outcome === 0) { }}
+    <span class="layui-badge layui-bg-gray">档口静默</span>
+    {{# } else if (d.outcome === 1) { }}
+    <span class="layui-badge layui-bg-blue">本轮无事</span>
+    {{# } else if (d.outcome === 2) { }}
+    <span class="layui-badge layui-bg-green">已执行</span>
+    {{# } else if (d.outcome === 3) { }}
+    <span class="layui-badge layui-bg-red">执行不出去</span>
+    {{# } }}
+</script>
+
+<th:block th:include="include :: footer"/>
+<script>
+    layui.use(['table', 'form', 'jquery'], function () {
+        let table = layui.table;
+        let form = layui.form;
+        let $ = layui.jquery;
+
+        let MODULE_PATH = rootPath + "/PostDueTaskController/";
+        let cols = [
+            [
+                {title: 'ID', field: 'id', align: 'center', hide: true},
+                {title: '事项号', field: 'itemNo', align: 'left'},
+                {title: '事由类别', field: 'bizType', align: 'center', toolbar: '#postDueTask-bizType'},
+                {title: '被告知企业', field: 'siteNo', align: 'center'},
+                {title: '该动手那一日(止点)', field: 'dueAt', align: 'center'},
+                {title: '提前几日', field: 'amount', align: 'center'},
+                {title: '事由与送达办法', field: 'content', align: 'left'},
+                {title: '情形', field: 'status', align: 'center', toolbar: '#postDueTask-status'},
+                {title: '送达时刻', field: 'deliveredAt', align: 'center'},
+                {title: '情由', field: 'failReason', align: 'left'},
+                {title: '操作', toolbar: '#postDueTask-bar', align: 'center', width: 90}
+            ]
+        ];
+
+        table.render({
+            elem: '#postDueTask-table',
+            url: MODULE_PATH + 'list',
+            page: true,
+            method: 'get',
+            cols: cols,
+            skin: 'line',
+            defaultToolbar: ['filter', 'print', 'exports'],
+            where: {orderByColumn: "due_at", isAsc: "asc"}
+        });
+
+        let roundCols = [
+            [
+                {title: '本轮时刻', field: 'runAt', align: 'center'},
+                {title: '结局', field: 'outcome', align: 'center', toolbar: '#postDueRound-outcome'},
+                {title: '未开口', field: 'waitCount', align: 'center'},
+                {title: '已送达', field: 'doneCount', align: 'center'},
+                {title: '送不下去', field: 'failCount', align: 'center'},
+                {title: '挑出', field: 'pickedCount', align: 'center'},
+                {title: '送达', field: 'sentCount', align: 'center'},
+                {title: '撤回', field: 'withdrawnCount', align: 'center'},
+                {title: '据实一句话', field: 'message', align: 'left'}
+            ]
+        ];
+
+        table.render({
+            elem: '#postDueRound-table',
+            url: MODULE_PATH + 'roundList',
+            page: true,
+            method: 'get',
+            cols: roundCols,
+            skin: 'line',
+            defaultToolbar: ['filter'],
+            where: {orderByColumn: "run_at", isAsc: "desc"}
+        });
+
+        //查询按钮绑定
+        form.on('submit(postDueTask-query)', function (data) {
+            table.reload('postDueTask-table', {where: data.field});
+            return false;
+        });
+
+        //行内事件
+        table.on('tool(postDueTask-table)', function (obj) {
+            if (obj.event === 'editAmount') {
+                window.editAmount(obj);
+            }
+        });
+
+        //改提前几日（能改的只有这一栏）
+        window.editAmount = function (obj) {
+            layer.prompt({title: '提前几日开口告知（事项 ' + obj.data['itemNo'] + '）', formType: 0, value: obj.data['amount']}, function (val, index) {
+                layer.close(index);
+                let loading = layer.load();
+                $.ajax({
+                    url: MODULE_PATH + "editAmount",
+                    dataType: 'json',
+                    type: 'post',
+                    data: {id: obj.data['id'], amount: val},
+                    success: function (result) {
+                        layer.close(loading);
+                        if (result.code == 200) {
+                            layer.msg(result.msg, {icon: 1, time: 1000}, function () {
+                                table.reload('postDueTask-table');
+                            });
+                        } else {
+                            layer.msg(result.msg, {icon: 2, time: 1500});
+                        }
+                    }
+                });
+            });
+        };
+
+        //刷新一屏局面
+        window.loadStat = function () {
+            $.ajax({
+                url: MODULE_PATH + "stat",
+                dataType: 'json',
+                type: 'get',
+                success: function (result) {
+                    let data = result.data || {};
+                    let counts = data.counts || {};
+                    $('#stat-wait').text(counts.wait == null ? 0 : counts.wait);
+                    $('#stat-done').text(counts.done == null ? 0 : counts.done);
+                    $('#stat-fail').text(counts.fail == null ? 0 : counts.fail);
+                    let round = data.round;
+                    if (round) {
+                        let outcomes = {0: '档口静默', 1: '本轮无事', 2: '已执行', 3: '执行不出去'};
+                        $('#round-outcome').text(outcomes[round.outcome] == null ? '-' : outcomes[round.outcome]);
+                        $('#round-runat').text(round.runAt || '');
+                        $('#round-message').text(round.message || '-');
+                    } else {
+                        $('#round-outcome').text('还没跑过');
+                        $('#round-runat').text('');
+                        $('#round-message').text('-');
+                    }
+                    $('#window-state').text(data.inWindow ? '当前在出手段内' : '当前档口静默（夜里/法定节假日/段外）');
+                }
+            });
+        };
+
+        $('#btn-refresh').on('click', function () {
+            window.loadStat();
+            table.reload('postDueTask-table');
+            table.reload('postDueRound-table');
+        });
+
+        //跑一轮：跑没跑成看它给回什么
+        $('#btn-run').on('click', function () {
+            let loading = layer.load();
+            $.ajax({
+                url: MODULE_PATH + "run",
+                dataType: 'json',
+                type: 'post',
+                success: function (result) {
+                    layer.close(loading);
+                    layer.msg(result.msg, {icon: result.code == 200 ? 1 : 2, time: 2000});
+                    window.loadStat();
+                    table.reload('postDueTask-table');
+                    table.reload('postDueRound-table');
+                },
+                error: function () {
+                    layer.close(loading);
+                    layer.msg('执行不出去', {icon: 2, time: 2000});
+                }
+            });
+        });
+
+        window.loadStat();
+    });
+</script>
+</html>
